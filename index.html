@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Album Info Fetcher</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital@1&family=Quicksand&display=swap" rel="stylesheet">
+    <meta name="title" content="Album Info Fetcher">
+    <meta name="description" content="source code on GitHub (Dalk21/tracklist)">
+    <meta name="theme-color" content="#ffffff">
+        
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://tlst.dalks.xyz">
+    <meta property="og:title" content="Album Info Fetcher">
+    <meta property="og:description" content="source code on GitHub (Dalk21/tracklist)">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://tlst.dalks.xyz">
+    <meta property="twitter:title" content="Album Info Fetcher">
+    <meta property="twitter:description" content="source code on GitHub (Dalk21/tracklist)">
+    <link rel="icon" type="image/x-icon" href="https://github.com/Dalk21/tracklist/raw/main/logo.png">
+    <style>
+     body {
+      font-family: 'Quicksand';
+      text-align: center;
+      background: linear-gradient(135deg, #0f0f0f, #191919, #0d1113, #161a1c);
+      background-size: 600% 600%;
+      animation: gradientBG 20s ease infinite;
+      color: #fff;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    @keyframes gradientBG {
+      0%, 100% {
+        background-position: 0% 50%;
+      }
+      50% {
+        background-position: 100% 50%;
+      }
+    }
+
+    h1 {
+      font-size: 36px;
+      margin-bottom: 20px;
+    }
+
+    form {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    label, input {
+      display: block;
+      margin-bottom: 10px;
+      width: 100%;
+      max-width: 300px;
+      padding: 10px;
+      border: none;
+      border-radius: 20px;
+      font-size: 16px;
+      font-family: 'Quicksand';
+    }
+
+    button {
+      background-color: #ff4545;
+      color: #fff;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.3s;
+      font-family: 'Quicksand';
+    }
+
+    button:hover {
+      background-color: #d32f2f;
+    }
+
+    #albumList, #albumInfo {
+      background-color: rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 20px;
+      max-width: 600px;
+      width: 100%;
+      margin-top: 20px;
+      font-family: 'Quicksand';
+    }
+
+    select, #tracklist {
+      text-align: center;
+      margin-top: 20px;
+      border-radius: 20px;
+    }
+
+    ul {
+      list-style-type: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    ul li {
+      margin-bottom: 10px;
+      font-size: 18px;
+    }
+
+    #coverContainer {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    #albumCover {
+      max-width: 300px;
+      max-height: 300px;
+      border-radius: 20px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+  </style>
+</head>
+<body>
+    <h1>Album Information Fetcher</h1>
+    <form id="albumForm">
+        <label for="albumName">Album Name:</label>
+        <input type="text" id="albumName" required>
+        <label for="artistName">Artist:</label>
+        <input type="text" id="artistName" required>
+        <button type="button" id="fetchButton">Fetch Info</button>
+      </form>
+    
+      <div id="albumList" style="display: none;">
+        <h2>Album List</h2>
+        <select id="resultsSelector"></select><br><br>
+        <button type="button" id="selectButton">Select Album</button>
+      </div>
+    
+      <div id="albumInfo" style="display: none;">
+        <h2>Album Details</h2>
+        <div id="coverContainer">
+          <img id="albumCover" src="" alt="Album Cover">
+        </div>
+        <p id="albumTitle"></p>
+        <p id="albumArtist"></p>
+        <p id="albumYear"></p>
+        <p id="albumPrice"></p>
+        <p id="albumExplicit"></p>
+        <p id="albumCopyright"></p>
+        <div id="tracklist">
+          <h3>Tracklist</h3>
+          <ul id="tracklistItems"></ul>
+        </div>
+      </div>
+
+  <script>
+   let data; // Declare data at a higher scope
+    const apiKey = "LASTFM_API_KEY"
+    
+    document.getElementById("fetchButton").addEventListener("click", async function() {
+      console.log("Button clicked");
+
+      const albumName = document.getElementById("albumName").value;
+      const artistName = document.getElementById("artistName").value;
+      const searchTerm = `${albumName} ${artistName}`;
+      
+      const response = await fetch(`https://itunes.apple.com/search?term=${searchTerm}&entity=album`);
+      data = await response.json();
+      
+      console.log(data); // Debugging line
+
+      if (data.resultCount > 0) {
+        const resultsSelector = document.getElementById("resultsSelector");
+        resultsSelector.innerHTML = "";
+
+        for (const album of data.results) {
+          const option = document.createElement("option");
+          option.value = album.collectionId;
+          option.text = `${album.collectionName} - ${album.artistName} (${album.releaseDate.substring(0, 4)})`;
+          resultsSelector.appendChild(option);
+        }
+
+        document.getElementById("albumList").style.display = "block";
+      } else {
+        alert("No albums found with the provided information.");
+      }
+    });
+
+    const selectButton = document.getElementById("selectButton");
+    const albumList = document.getElementById("albumList");
+    const albumInfo = document.getElementById("albumInfo");
+
+    selectButton.addEventListener("click", async function() {
+      const resultsSelector = document.getElementById("resultsSelector");
+      const selectedResultId = parseInt(resultsSelector.value);
+      console.log("Selected Result ID:", selectedResultId);
+
+      const selectedAlbum = data.results.find(album => album.collectionId === selectedResultId);
+      console.log("Selected Album:", selectedAlbum);
+
+      if (selectedAlbum) {
+        document.getElementById("albumCover").src = selectedAlbum.artworkUrl100.replace(/100x100/, "300x300"); // Larger album art
+        document.getElementById("albumTitle").textContent = `Title: ${selectedAlbum.collectionName}`;
+        document.getElementById("albumArtist").textContent = `Artist: ${selectedAlbum.artistName}`;
+        document.getElementById("albumYear").textContent = `Release Year: ${selectedAlbum.releaseDate.substring(0, 4)}`;
+        document.getElementById("albumPrice").textContent = `Price: $${selectedAlbum.collectionPrice}`;
+        if(selectedAlbum.collectionExplicitness == "notExplicit") {
+            document.getElementById("albumExplicit").textContent = `Explicit: False`;
+        } else {
+            document.getElementById("albumExplicit").textContent = `Explicit: True`;
+        }
+        document.getElementById("albumCopyright").textContent = `Copyright: ${selectedAlbum.copyright}`;
+
+        // Fetch tracklist from Last.fm API
+        const tracklistResponse = await fetch(`https://ws.audioscrobbler.com/2.0/?method=album.getinfo&api_key=${apiKey}&artist=${selectedAlbum.artistName}&album=${selectedAlbum.collectionName}&format=json`);
+        const tracklistData = await tracklistResponse.json();
+        
+        if (tracklistData.album && tracklistData.album.tracks && tracklistData.album.tracks.track) {
+          const tracklistItems = document.getElementById("tracklistItems");
+          tracklistItems.innerHTML = "";
+
+          for (const track of tracklistData.album.tracks.track) {
+            const trackItem = document.createElement("li");
+            trackItem.textContent = track.name;
+            tracklistItems.appendChild(trackItem);
+          }
+        }
+
+        albumList.style.display = "none";
+        albumInfo.style.display = "block";
+      } else {
+        console.log("Selected album not found!");
+      }
+    });
+  </script>
+</body>
+</html>
